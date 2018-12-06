@@ -190,8 +190,7 @@ pub fn record_parser(input: &str) -> Vec<Record> {
   records
 }
 
-#[aoc(day4, part1)]
-pub fn part1(records: &Vec<Record>) -> usize {
+pub fn process(records: &Vec<Record>) -> (HashMap<u64, isize>, HashMap<u64, HashMap<u16, usize>>) {
   let mut records = records.clone();
   records.sort();
 
@@ -214,7 +213,7 @@ pub fn part1(records: &Vec<Record>) -> usize {
   let mut time_asleep = HashMap::new();
   let mut minutes_asleep = HashMap::new();
 
-  for (guard, records) in events.iter() {
+  for (guard, records) in events {
     let mut iter = records.iter();
 
     let mut sleep_time = None;
@@ -240,6 +239,14 @@ pub fn part1(records: &Vec<Record>) -> usize {
     }
   }
 
+  (time_asleep, minutes_asleep)
+}
+
+#[aoc(day4, part1)]
+pub fn part1(records: &Vec<Record>) -> usize {
+
+  let (time_asleep, minutes_asleep) = process(records);
+
   let (best_guard,_) = time_asleep.iter()
     .max_by(|(_,x),(_,y)| x.cmp(y))
     .unwrap();
@@ -248,7 +255,28 @@ pub fn part1(records: &Vec<Record>) -> usize {
     .max_by(|(_,x),(_,y)| x.cmp(y))
     .unwrap();
 
-  (**best_guard as usize) * (*best_minute as usize)
+  (*best_guard as usize) * (*best_minute as usize)
+}
+
+#[aoc(day4, part2)]
+pub fn part2(records: &Vec<Record>) -> usize {
+  let (time_asleep, minutes_asleep) = process(records);
+
+  let mut best_count: usize = 0;
+  let mut best_guard: usize = 0;
+  let mut best_minute: usize = 0;
+
+  for (guard, map) in minutes_asleep {
+    for (minute, count) in map {
+      if count > best_count {
+        best_count = count;
+        best_guard = guard as usize;
+        best_minute = minute as usize;
+      }
+    }
+  }
+
+  best_guard * best_minute
 }
 
 #[cfg(test)]
