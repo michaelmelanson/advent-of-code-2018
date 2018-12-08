@@ -1,14 +1,10 @@
 use aoc_runner_derive::{aoc, aoc_generator};
 use std::prelude::v1::{Vec};
 use regex::Regex;
-use std::collections::{HashMap, BinaryHeap};
+use std::collections::HashMap;
 use std::cmp::Ordering;
 use std::ops::Sub;
-use std::fmt::Display;
-use std::fmt::Formatter;
-use std::fmt::Error;
-use std::fmt::Arguments;
-use std::fmt::Debug;
+use std::fmt::{Formatter, Error, Debug};
 use std::iter::Step;
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -214,7 +210,7 @@ pub fn process(records: &Vec<Record>) -> (HashMap<u64, isize>, HashMap<u64, Hash
   let mut minutes_asleep = HashMap::new();
 
   for (guard, records) in events {
-    let mut iter = records.iter();
+    let iter = records.iter();
 
     let mut sleep_time = None;
 
@@ -260,7 +256,7 @@ pub fn part1(records: &Vec<Record>) -> usize {
 
 #[aoc(day4, part2)]
 pub fn part2(records: &Vec<Record>) -> usize {
-  let (time_asleep, minutes_asleep) = process(records);
+  let (_time_asleep, minutes_asleep) = process(records);
 
   let mut best_count: usize = 0;
   let mut best_guard: usize = 0;
