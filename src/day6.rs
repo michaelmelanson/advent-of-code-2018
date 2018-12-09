@@ -35,9 +35,7 @@ pub fn coordinate_parser(input: &str) -> Vec<Coord> {
   coords
 }
 
-#[aoc(day6, part1)]
-pub fn part1(coords: &Vec<Coord>) -> u16 {
-
+fn bounds_for_coords(coords: &Vec<Coord>) -> Bounds {
   let mut bounds = Bounds {
     min_x: 0,
     max_x: 0,
@@ -68,6 +66,13 @@ pub fn part1(coords: &Vec<Coord>) -> u16 {
   bounds.max_x += 1;
   bounds.max_y += 1;
 
+  bounds
+}
+#[aoc(day6, part1)]
+pub fn part1(coords: &Vec<Coord>) -> u16 {
+
+  let bounds = bounds_for_coords(coords);
+
   let mut region_size = HashMap::new();
   let mut infinite_regions = HashSet::new();
 
@@ -90,7 +95,7 @@ pub fn part1(coords: &Vec<Coord>) -> u16 {
       if best_regions.len() == 1 {
         let best_index = *best_regions.first().unwrap();
         let best_coord = *coords.get(best_index).unwrap();
-        print!("{}", best_coord.name);
+        // print!("{}", best_coord.name);
 
         *region_size.entry(best_index).or_insert(0) += 1;
 
@@ -98,10 +103,10 @@ pub fn part1(coords: &Vec<Coord>) -> u16 {
           infinite_regions.insert(best_index);
         }
       } else {
-        print!("{}", ".");
+        // print!("{}", ".");
       }
     }
-    println!();
+    // println!();
   }
 
   println!("Infinite regions: {:?}", infinite_regions);
@@ -115,6 +120,37 @@ pub fn part1(coords: &Vec<Coord>) -> u16 {
   }
 
   biggest_size
+}
+
+#[aoc(day6, part2)]
+pub fn part2(coords: &Vec<Coord>) -> u16 {
+  let mut region_size = 0;
+
+  let bounds = bounds_for_coords(coords);
+
+  for y in bounds.min_y..bounds.max_y {
+    for x in bounds.min_x..bounds.max_x {
+
+      let mut total_distance = 0;
+
+      for (index, coord) in coords.iter().enumerate() {
+        let dist = num::abs(x - coord.x) + num::abs(y - coord.y);
+
+        total_distance += dist;
+      }
+
+      if total_distance < 10000 {
+        region_size += 1;
+        // print!("#");
+      } else {
+        // print!(".");
+      }
+    }
+
+    // println!();
+  }
+
+  region_size
 }
 
 #[cfg(test)]
