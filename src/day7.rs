@@ -2,6 +2,7 @@ use aoc_runner_derive::{aoc, aoc_generator};
 use regex::Regex;
 use std::collections::HashMap;
 use std::cmp::Ordering;
+use std::collections::HashSet;
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Rule {
@@ -30,59 +31,144 @@ pub fn rule_parser(input: &str) -> Vec<Rule> {
 
 #[aoc(day7, part1)]
 pub fn part1(rules: &Vec<Rule>) -> String {
-  let mut ranks: HashMap<char, usize> = HashMap::new();
+  let mut prerequisites: HashMap<char, HashSet<char>> = HashMap::new();
+  let mut open: HashSet<char> = HashSet::new();
+
+  for rule in rules {
+    prerequisites.entry(rule.step).or_default().insert(rule.prerequisite);
+    open.insert(rule.step);
+    open.insert(rule.prerequisite);
+  }
+
+  let mut closed: HashSet<char> = HashSet::new();
+  let mut sequence: Vec<char> = Vec::new();
 
   loop {
-    let mut changed = false;
+    let mut satisfied: Vec<char> = Vec::new();
 
-    for rule in rules {
-      let step_rank = *ranks.entry(rule.step).or_default();
-      let prereq_rank = *ranks.entry(rule.prerequisite).or_default();
+    println!("Round started with open={:?}, closed={:?}", open, closed);
 
-      if step_rank <= prereq_rank {
-        println!("Step {} (rank {}) needs to be before step {} (rank {}).",
-                 rule.step, step_rank,
-                 rule.prerequisite, prereq_rank
-        );
-        ranks.insert(rule.step, prereq_rank + 1);
-        changed = true;
+    for step in open.iter() {
+      let prereqs = prerequisites.entry(*step).or_default();
+
+      if prereqs.is_subset(&closed) {
+        println!("  All prerequisites of {} are closed: {:?}", step, prereqs);
+        satisfied.push(*step);
       }
     }
 
-    println!("Ranks: {:?}", ranks);
+    satisfied.sort();
 
-    if !changed {
+    println!("  Satisfied list: {:?}", satisfied);
+
+    let next = satisfied.first().unwrap();
+
+    println!("  Doing step {}", next);
+
+    closed.insert(*next);
+    sequence.push(*next);
+    open.remove(next);
+
+    if open.is_empty() {
       break;
     }
   }
 
+  sequence.into_iter().collect()
+}
 
-  let mut result = ranks.keys().map(|c| *c).collect::<Vec<char>>();
-  result.sort_by(|a, b| {
-    match ranks.get(a).unwrap().cmp(ranks.get(b).unwrap()) {
-      Ordering::Equal => a.cmp(b),
-      x => x
-    }
-  });
+#[aoc(day7, part2)]
+pub fn part2(rules: &Vec<Rule>) -> usize {
+  part2_inner(5, 60, rules)
+}
 
-  let mut sorted_ranks = ranks.values().map(|c| *c).collect::<Vec<usize>>();
-  sorted_ranks.sort();
-  sorted_ranks.dedup();
+pub fn part2_inner(num_elves: usize, base_step_duration: usize, rules: &Vec<Rule>) -> usize {
+  #[derive(Copy, Clone, Debug)]
+  struct Elf {
+    step: Option<char>,
+    time_left: usize
+  }
 
-  for rank in sorted_ranks {
-    let mut steps = Vec::new();
+  let mut step_durations = HashMap::new();
+  let mut duration = base_step_duration;
+  for step in "ABCDEFGHIJKLMNOPQRSTUVWXYZ".chars() {
+    duration += 1;
+    step_durations.insert(step, duration);
+  }
 
-    for step in ranks.keys() {
-      if *ranks.get(step).unwrap() == rank {
-        steps.push(step);
+  let mut elves = Vec::new();
+  elves.resize(num_elves, Elf { step: None, time_left: 0 });
+
+  let mut prerequisites: HashMap<char, HashSet<char>> = HashMap::new();
+  let mut open: HashSet<char> = HashSet::new();
+
+  for rule in rules {
+    prerequisites.entry(rule.step).or_default().insert(rule.prerequisite);
+    open.insert(rule.step);
+    open.insert(rule.prerequisite);
+  }
+
+  let mut closed: HashSet<char> = HashSet::new();
+  let mut sequence: Vec<char> = Vec::new();
+
+  let mut second = 0;
+  loop {
+    // finish any tasks that are done
+    for elf in elves.iter_mut() {
+      if let Some(step) = elf.step {
+        elf.time_left -= 1;
+
+        if elf.time_left == 0 {
+          elf.step = None;
+          closed.insert(step);
+        }
       }
     }
 
-    println!("Rank {}: {:?}", rank, steps);
+    let mut satisfied: Vec<char> = Vec::new();
+
+    // println!("Round started with open={:?}, closed={:?}", open, closed);
+
+    for step in open.iter() {
+      let prereqs = prerequisites.entry(*step).or_default();
+
+      if prereqs.is_subset(&closed) {
+        // println!("  All prerequisites of {} are closed: {:?}", step, prereqs);
+        satisfied.push(*step);
+      }
+    }
+
+    satisfied.sort();
+
+    // println!("  Satisfied list: {:?}", satisfied);
+
+    // assign the tasks
+    for step in satisfied {
+      let elf = elves.iter_mut().find(|e| e.step.is_none());
+
+      match elf {
+        Some(elf) => {
+          elf.step = Some(step);
+          elf.time_left = *step_durations.get(&step).unwrap();
+          open.remove(&step);
+        },
+        None => break
+      }
+    }
+
+    println!("{:4} {:?}", second, elves.iter().map(|e| e.step.unwrap_or('.')).collect::<Vec<char>>());
+
+    if elves.iter().find(|e| e.step.is_some()).is_none() {
+      break;
+    }
+
+    second += 1;
+
   }
 
-  result.into_iter().collect()
+  second
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -91,13 +177,13 @@ mod tests {
   #[test]
   pub fn rule_parser_test() {
     assert_eq!([
-                 Rule { step: 'C', prerequisite: 'A' },
-                 Rule { step: 'C', prerequisite: 'F' },
-                 Rule { step: 'A', prerequisite: 'B' },
-                 Rule { step: 'A', prerequisite: 'D' },
-                 Rule { step: 'B', prerequisite: 'E' },
-                 Rule { step: 'D', prerequisite: 'E' },
-                 Rule { step: 'F', prerequisite: 'E' },
+                 Rule { step: 'A', prerequisite: 'C' },
+                 Rule { step: 'F', prerequisite: 'C' },
+                 Rule { step: 'B', prerequisite: 'A' },
+                 Rule { step: 'D', prerequisite: 'A' },
+                 Rule { step: 'E', prerequisite: 'B' },
+                 Rule { step: 'E', prerequisite: 'D' },
+                 Rule { step: 'E', prerequisite: 'F' },
     ].to_vec(), rule_parser("Step C must be finished before step A can begin.
 Step C must be finished before step F can begin.
 Step A must be finished before step B can begin.
@@ -106,4 +192,27 @@ Step B must be finished before step E can begin.
 Step D must be finished before step E can begin.
 Step F must be finished before step E can begin."));
   }
+
+  #[test]
+  pub fn part1_test() {
+    assert_eq!("CABDFE", part1(&rule_parser("Step C must be finished before step A can begin.
+Step C must be finished before step F can begin.
+Step A must be finished before step B can begin.
+Step A must be finished before step D can begin.
+Step B must be finished before step E can begin.
+Step D must be finished before step E can begin.
+Step F must be finished before step E can begin.")));
+  }
+
+  #[test]
+  pub fn part2_test() {
+    assert_eq!(15, part2_inner(2, 1, &rule_parser("Step C must be finished before step A can begin.
+Step C must be finished before step F can begin.
+Step A must be finished before step B can begin.
+Step A must be finished before step D can begin.
+Step B must be finished before step E can begin.
+Step D must be finished before step E can begin.
+Step F must be finished before step E can begin.")));
+  }
+
 }
