@@ -45,7 +45,7 @@ pub fn parse_input(input: &str) -> Licence {
 pub fn part1(input: &str) -> usize {
   let licence = parse_input(input);
 
-  println!("License: {:?}", licence);
+  println!("Licence: {:?}", licence);
 
   fn sum_metadata(node: &Node) -> usize {
     let mut sum = 0;
