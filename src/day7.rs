@@ -206,7 +206,7 @@ Step F must be finished before step E can begin.")));
 
   #[test]
   pub fn part2_test() {
-    assert_eq!(15, part2_inner(2, 1, &rule_parser("Step C must be finished before step A can begin.
+    assert_eq!(20, part2_inner(2, 1, &rule_parser("Step C must be finished before step A can begin.
 Step C must be finished before step F can begin.
 Step A must be finished before step B can begin.
 Step A must be finished before step D can begin.
